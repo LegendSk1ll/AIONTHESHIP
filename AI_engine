@@ -1,13 +1,65 @@
-from sklearn.ensemble import IsolationForest
 import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+from joblib import dump, load
+import os
 
-def analyze_state(data, user_input=None):
-    # Koulutetaan malli (oikeassa sovelluksessa koulutus tehtäisiin erikseen)
-    X = np.array([[data['engine']['temp'], [data['engine']['oil_level']])  # Esimerkkidata
-    model = IsolationForest(contamination=0.1).fit(X)
+MODEL_PATH = "ai_models/engine_model.joblib"
+SCALER_PATH = "ai_models/scaler.joblib"
+
+class AIEngine:
+    def __init__(self):
+        self.model = None
+        self.scaler = None
+        self.initialize_model()
+        
+    def initialize_model(self):
+        """Load or create model and scaler"""
+        if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH):
+            self.model = load(MODEL_PATH)
+            self.scaler = load(SCALER_PATH)
+        else:
+            # Create directory if doesn't exist
+            os.makedirs("ai_models", exist_ok=True)
+            
+            # Sample training data - replace with your actual data
+            X_train = np.array([[70, 50], [80, 40], [90, 30], [60, 60]])
+            y_train = np.array([0, 1, 1, 0])  # 0 = OK, 1 = Warning
+            
+            # Scale features
+            self.scaler = StandardScaler()
+            X_train_scaled = self.scaler.fit_transform(X_train)
+            
+            # Train model
+            self.model = RandomForestClassifier(n_estimators=100)
+            self.model.fit(X_train_scaled, y_train)
+            
+            # Save model and scaler
+            dump(self.model, MODEL_PATH)
+            dump(self.scaler, SCALER_PATH)
     
-    # Ennustetaan häiriö
-    anomaly_score = model.predict([[data['engine']['temp'], data['engine']['oil_level']])
-    advice = "Häiriö mahdollinen!" if anomaly_score[0] == -1 else "Kaikki ok"
-    
-    return {"advice": advice, "response": advice}
+    def analyze_state(self, data, user_input=None):
+        """Analyze equipment state with ML"""
+        # Prepare input data
+        X = np.array([[data['engine']['temp'], data['engine']['oil_level']])
+        X_scaled = self.scaler.transform(X)
+        
+        # Make prediction
+        prediction = self.model.predict(X_scaled)
+        proba = self.model.predict_proba(X_scaled)
+        
+        # Generate advice
+        if prediction[0] == 1:
+            advice = f"⚠️ Warning! High risk of failure ({(proba[0][1]*100):.1f}% probability)"
+        else:
+            advice = f"✅ Normal operation ({(proba[0][0]*100):.1f}% confidence)"
+            
+        return {
+            "advice": advice,
+            "response": advice,
+            "probability": float(proba[0][1])
+        }
+
+# Initialize AI engine when module loads
+ai_engine = AIEngine()
