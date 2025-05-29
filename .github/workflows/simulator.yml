@@ -3,10 +3,7 @@ on: [workflow_dispatch]  # Mahdollistaa manuaalisen käynnistyksen
 jobs:
   run-simulator:
     runs-on: ubuntu-latest
+    container:
+      image: python:3.9
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Run simulator
-        run: |
-          echo "Simulator starting..."
-          # Lisää komennot, jotka käynnistävät simulaattorin
+      - run: python simulator.py
