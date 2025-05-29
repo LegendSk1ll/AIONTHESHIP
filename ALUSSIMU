@@ -89,3 +89,25 @@ if user_input:
     # Analysoi syöte tekoälylle
     ai_response = analyze_state(data, user_input)  # Oletetaan, että analysoin-tifunktio voi ottaa käyttäjän syötteen
     st.write(f"Tekoäly vastaa: {ai_response['response']}")  # Tekoälyn vastaus
+# Replace the existing analyze_state import with:
+from ai_engine import ai_engine
+
+# Update the analysis section:
+st.subheader("🧠 AI-Powered Analysis")
+with st.spinner("Analyzing equipment state..."):
+    ai_response = ai_engine.analyze_state(data)
+    
+col1, col2 = st.columns(2)
+with col1:
+    st.info(f"AI Recommendation: {ai_response['advice']}")
+with col2:
+    st.metric("Risk Probability", f"{ai_response['probability']*100:.1f}%")
+    
+    # Visualize risk level
+    risk_level = ai_response['probability']
+    if risk_level > 0.7:
+        st.error("Critical Risk")
+    elif risk_level > 0.4:
+        st.warning("Moderate Risk")
+    else:
+        st.success("Low Risk")
