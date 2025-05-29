@@ -1,0 +1,17 @@
+{
+  "engine": {
+    "temp": 70,
+    "oil_level": 50,
+    "status": "Hyvä"
+  },
+  "aux_engine": {
+    "temp": 65,
+    "oil_level": 50,
+    "status": "Hyvä"
+  },
+  "pump": {
+    "status": "Käynnissä",
+    "temp": 50
+  },
+  "history": []
+}
