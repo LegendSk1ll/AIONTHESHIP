@@ -1,0 +1,35 @@
+def analyze_state(data, user_input=None):
+    """
+    Analysoi laitteiden tilaa ja reagoi muutoksiin.
+    Jos käyttäjä on antanut kysymyksen, tekoäly vastaa siihen.
+    """
+    if user_input:
+        # Vastaus käyttäjän kysymyksiin
+        if "moottori" in user_input.lower():
+            response = "Päämoottori toimii hyvin, mutta tarkista öljyn määrä, jos se laskee alle 20%."
+        elif "pumpun" in user_input.lower():
+            response = "Pumpun lämpötila näyttää olevan normaalilla tasolla."
+        else:
+            response = "Pahoittelen, en osaa vastata tuohon kysymykseen."
+    else:
+        # Analysoi laitteiden tilat
+        advice = []
+        if data['engine']['temp'] > 80:
+            advice.append("Päämoottorin lämpötila on liian korkea!")
+        if data['engine']['oil_level'] < 20:
+            advice.append("Päämoottorin öljyn määrä on liian matala!")
+        
+        if data['aux_engine']['temp'] > 80:
+            advice.append("Apumoottorin lämpötila on liian korkea!")
+        if data['aux_engine']['oil_level'] < 20:
+            advice.append("Apumoottorin öljyn määrä on liian matala!")
+        
+        if data['pump']['temp'] > 80:
+            advice.append("Pumppu on liian kuuma!")
+
+        if not advice:
+            advice = ["Kaikki laitteet toimivat normaalisti."]
+
+        response = "\n".join(advice)
+    
+    return {"response": response, "advice": response}
