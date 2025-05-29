@@ -1,0 +1,91 @@
+import streamlit as st
+import json
+import time
+from datetime import datetime
+from ai_engine import analyze_state
+from utils import get_status_color, load_sensor_data
+
+st.set_page_config(page_title="Alus Simulaattori", layout="wide")
+st.title("🚢 Alus Simulaattori")
+
+# Ladataan sensordata
+data = load_sensor_data("data/sensors.json")  # Lisää tiedostopolku
+
+# Sidebar ohjaus
+st.sidebar.header("⚙️ Ohjauspaneeli")
+manual_update = st.sidebar.checkbox("Päivitä tila manuaalisesti")
+
+# Manuali-tilan toiminnot
+if manual_update:
+    st.sidebar.subheader("Säädä komponentteja")
+
+    # Säädä moottorin lämpötila ja öljyn määrä
+    engine_temp = st.sidebar.slider("Päämoottori Lämpötila (°C)", min_value=0, max_value=100, value=data['engine']['temp'])
+    engine_oil = st.sidebar.slider("Päämoottori Öljyn määrä (%)", min_value=0, max_value=100, value=data['engine']['oil_level'])
+
+    # Säädä apumoottorin lämpötila ja öljyn määrä
+    aux_engine_temp = st.sidebar.slider("Apumoottori Lämpötila (°C)", min_value=0, max_value=100, value=data['aux_engine']['temp'])
+    aux_engine_oil = st.sidebar.slider("Apumoottori Öljyn määrä (%)", min_value=0, max_value=100, value=data['aux_engine']['oil_level'])
+
+    # Säädä pumpun lämpötila
+    pump_temp = st.sidebar.slider("Pumppu Lämpötila (°C)", min_value=0, max_value=100, value=data['pump']['temp'])
+
+    # Päivitä arvot
+    if st.sidebar.button("🔁 Päivitä tila nyt"):
+        data['engine']['temp'] = engine_temp
+        data['engine']['oil_level'] = engine_oil
+        data['aux_engine']['temp'] = aux_engine_temp
+        data['aux_engine']['oil_level'] = aux_engine_oil
+        data['pump']['temp'] = pump_temp
+else:
+    time.sleep(1)
+    data = load_sensor_data("data/sensors.json")  # Päivitä automaattisesti joka sekunti
+
+# Pääpaneeli
+st.subheader("📊 Komponenttien tila")
+
+cols = st.columns(3)
+
+# Päämoottori
+with cols[0]:
+    st.markdown(f"### 🛠️ Päämoottori")
+    st.metric("Lämpötila", f"{data['engine']['temp']} °C")
+    st.metric("Öljyn määrä", f"{data['engine']['oil_level']} %")
+    st.metric("Toiminta", data['engine']['status'])
+    st.markdown(f"**Tila:** <span sty-le='color:{get_status_color(data['engine']['status'])}'>{data['engine']['status']}</span>", unsafe_allow_html=True)
+
+# Apumoottori
+with cols[1]:
+    st.markdown(f"### 🔧 Apumoottori")
+    st.metric("Lämpötila", f"{data['aux_engine']['temp']} °C")
+    st.metric("Öljyn määrä", f"{data['aux_engine']['oil_level']} %")
+    st.metric("Toiminta", data['aux_engine']['status'])
+    st.markdown(f"**Tila:** <span sty-le='color:{get_status_color(data['aux_engine']['status'])}'>{data['aux_engine']['status']}</span>", unsafe_allow_html=True)
+
+# Pumppu
+with cols[2]:
+    st.markdown(f"### 💧 Pumppu")
+    st.metric("Toiminta", data['pump']['status'])
+    if data['pump']['status'] == "Käynnissä":
+        st.metric("Lämpötila", f"{data['pump']['temp']} °C")
+    st.markdown(f"**Tila:** <span sty-le='color:{get_status_color(data['pump']['status'])}'>{data['pump']['status']}</span>", unsafe_allow_html=True)
+
+# Sensorihistoria ja tekoälyn ehdotukset
+st.subheader("🧠 Tekoälyn analyysi ja historiat")
+ai_response = analyze_state(data)
+st.info(f"Tekoälyn ehdotus: {ai_response['advice']}")
+
+st.markdown("### 📜 Tila-historia ja korjaustoimet")
+for event in reversed(data['history'][-5:]):
+    st.markdown(f"- [{event['timestamp']}] **{event['component']}**: {event['status']} — {event.get('fix', 'Ei toimenpiteitä')}")  
+
+# Keskustelu tekoälyn kanssa
+st.subheader("🗣️ Keskustele tekoälyn kanssa")
+
+# Käyttäjä syöttää kysymyksensä
+user_input = st.text_input("Kysy tekoälyltä:")
+
+if user_input:
+    # Analysoi syöte tekoälylle
+    ai_response = analyze_state(data, user_input)  # Oletetaan, että analysoin-tifunktio voi ottaa käyttäjän syötteen
+    st.write(f"Tekoäly vastaa: {ai_response['response']}")  # Tekoälyn vastaus
